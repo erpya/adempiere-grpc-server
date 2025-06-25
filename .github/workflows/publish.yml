@@ -7,7 +7,7 @@ name: Publish Project
 on:
   release:
     types:
-      - created
+    - created
 
 jobs:
 
@@ -16,125 +16,124 @@ jobs:
     name: Build dist ADempiere gRPC Server
     runs-on: ubuntu-latest
     steps:
-      - name: Check out the repo
-        uses: actions/checkout@v3
+    - name: Check out the repo
+      uses: actions/checkout@v3
 
-      - name: Set up Java JDK 11
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-package: 'jdk'
-          java-version: 11
-          architecture: x64
+    - name: Set up Java JDK 11
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-package: 'jdk'
+        java-version: 11
+        architecture: x64
 
-      - name: Set Main Version
-        run: echo "MAIN_VERSION=${{ github.event.release.name }}" >> src/main/java/org/spin/base/version.properties
+    - name: Set Main Version
+      run: echo "MAIN_VERSION=${{ github.event.release.name }}" >> src/main/java/org/spin/base/version.properties
 
-      - name: Set Release Date
-        run: echo "DATE_VERSION=$(date +'%Y-%m-%d')" >> src/main/java/org/spin/base/version.properties
+    - name: Set Release Date
+      run: echo "DATE_VERSION=$(date +'%Y-%m-%d')" >> src/main/java/org/spin/base/version.properties
 
-      - name: Set Implementation Version
-        run: echo "IMPLEMENTATION_VERSION=${{ github.event.release.tag_name }}" >> src/main/java/org/spin/base/version.properties
+    - name: Set Implementation Version
+      run: echo "IMPLEMENTATION_VERSION=${{ github.event.release.tag_name }}" >> src/main/java/org/spin/base/version.properties
 
-      - name: Build with Gradle
-        uses: gradle/gradle-build-action@v2
-        with:
-          gradle-version: 8.0.2
-          arguments: createRelease
-        env:
-          GITHUB_DEPLOY_USER: ${{ github.actor }}
-          GITHUB_DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
-          GITHUB_DEPLOY_REPOSITORY: ${{ secrets.DEPLOY_REPOSITORY }}
+    - name: Build with Gradle
+      uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: 8.0.2
+        arguments: createRelease
+      env:
+        GITHUB_DEPLOY_USER: ${{ github.actor }}
+        GITHUB_DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        GITHUB_DEPLOY_REPOSITORY: ${{ secrets.DEPLOY_REPOSITORY }}
 
-      - name: Upload descriptor file artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: adempiere-grpc-server.pb
-          path: build/descriptors/adempiere-grpc-server.pb
-          
-      - name: Upload envoy file artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: envoy.yaml
-          path: resources/envoy.yaml
-          
-      - name: Upload dist app zip artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: adempiere-grpc-server.zip
-          path: build/release/adempiere-grpc-server.zip
+    - name: Upload descriptor file artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: adempiere-grpc-server.pb
+        path: build/descriptors/adempiere-grpc-server.pb
 
-      - name: Upload dist app zip.MD5 artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: adempiere-grpc-server.zip.MD5
-          path: build/release/adempiere-grpc-server.zip.MD5
+    - name: Upload envoy file artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: envoy.yaml
+        path: resources/envoy.yaml
 
-      - name: Upload dist app tar artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: adempiere-grpc-server.tar
-          path: build/release/adempiere-grpc-server.tar
+    - name: Upload dist app zip artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: adempiere-grpc-server.zip
+        path: build/release/adempiere-grpc-server.zip
 
-      - name: Upload dist app tar.MD5 artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: adempiere-grpc-server.tar.MD5
-          path: build/release/adempiere-grpc-server.tar.MD5
+    - name: Upload dist app zip.MD5 artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: adempiere-grpc-server.zip.MD5
+        path: build/release/adempiere-grpc-server.zip.MD5
 
+    - name: Upload dist app tar artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: adempiere-grpc-server.tar
+        path: build/release/adempiere-grpc-server.tar
+
+    - name: Upload dist app tar.MD5 artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: adempiere-grpc-server.tar.MD5
+        path: build/release/adempiere-grpc-server.tar.MD5
 
   # Check secrets to push artifact in maven registry
   check-maven-secrets:
     name: Check if maven registry information was set on secrets
     needs:
-      - build-app
+    - build-app
     runs-on: ubuntu-latest
     outputs:
       is_have_secrets: ${{ steps.check_maven_secrets_job.outputs.is_have_secrets }}
     steps:
-      - id: check_maven_secrets_job
-        run: |
-          if [[ "${{ secrets.DEPLOY_TOKEN }}" != "" && \
-                "${{ secrets.DEPLOY_REPOSITORY }}" != "" ]]; \
-          then
-            echo "Secrets to use a maven registry are configured in the repo"
-            echo "is_have_secrets=true" >> $GITHUB_OUTPUT
-          else
-            echo "Secrets to use a maven registry were not configured in the repo"
-            echo "is_have_secrets=false" >> $GITHUB_OUTPUT
-          fi
+    - id: check_maven_secrets_job
+      run: |
+        if [[ "${{ secrets.DEPLOY_TOKEN }}" != "" && \
+              "${{ secrets.DEPLOY_REPOSITORY }}" != "" ]]; \
+        then
+          echo "Secrets to use a maven registry are configured in the repo"
+          echo "is_have_secrets=true" >> $GITHUB_OUTPUT
+        else
+          echo "Secrets to use a maven registry were not configured in the repo"
+          echo "is_have_secrets=false" >> $GITHUB_OUTPUT
+        fi
 
   # Build dist application adempiere-grpc-server
   publish-to-maven:
     name: Publish to Maven Repository
     needs:
-      - check-maven-secrets
+    - check-maven-secrets
     # Skip step based on secret
     if: needs.check-maven-secrets.outputs.is_have_secrets == 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: Check out the repo
-        uses: actions/checkout@v3
+    - name: Check out the repo
+      uses: actions/checkout@v3
 
-      - name: Set up Java JDK 11
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-package: 'jdk'
-          java-version: 11
-          architecture: x64
+    - name: Set up Java JDK 11
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-package: 'jdk'
+        java-version: 11
+        architecture: x64
 
-      - name: Publish with Gradle
-        uses: gradle/gradle-build-action@v2
-        with:
-          gradle-version: 8.0.2
-          arguments: publish
-        env:
-          LIBRARY_VERSION: ${{ github.event.release.tag_name }}
-          GITHUB_DEPLOY_USER: "${{ github.actor }}"
-          GITHUB_DEPLOY_TOKEN: "${{ secrets.DEPLOY_TOKEN }}"
-          GITHUB_DEPLOY_REPOSITORY: ${{ secrets.DEPLOY_REPOSITORY }}
-          GITHUB_PACKAGES_URL: https://maven.pkg.github.com/${{ github.repository_owner }}/${{ github.event.repository.name }}
+    - name: Publish with Gradle
+      uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: 8.0.2
+        arguments: publish
+      env:
+        LIBRARY_VERSION: ${{ github.event.release.tag_name }}
+        GITHUB_DEPLOY_USER: "${{ github.actor }}"
+        GITHUB_DEPLOY_TOKEN: "${{ secrets.DEPLOY_TOKEN }}"
+        GITHUB_DEPLOY_REPOSITORY: ${{ secrets.DEPLOY_REPOSITORY }}
+        GITHUB_PACKAGES_URL: https://maven.pkg.github.com/${{ github.repository_owner }}/${{ github.event.repository.name }}
 
   publish-binaries:
     name: Upload Binaries adempiere-grpc-server
@@ -144,147 +143,146 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v3
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
 
-      - name: Upload Descriptor
-        uses: skx/github-action-publish-binaries@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          args: adempiere-grpc-server.pb/adempiere-grpc-server.pb
-          
-      - name: Upload Envoy config
-        uses: skx/github-action-publish-binaries@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          args: envoy.yaml/envoy.yaml
-          
-      - name: Upload zip
-        uses: skx/github-action-publish-binaries@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          args: adempiere-grpc-server.zip/adempiere-grpc-server.zip
+    - name: Upload Descriptor
+      uses: skx/github-action-publish-binaries@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        args: adempiere-grpc-server.pb/adempiere-grpc-server.pb
 
-      - name: Upload zip.MD5
-        uses: skx/github-action-publish-binaries@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          args: adempiere-grpc-server.zip.MD5/adempiere-grpc-server.zip.MD5
+    - name: Upload Envoy config
+      uses: skx/github-action-publish-binaries@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        args: envoy.yaml/envoy.yaml
 
-      - name: Upload tar
-        uses: skx/github-action-publish-binaries@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          args: adempiere-grpc-server.tar/adempiere-grpc-server.tar
+    - name: Upload zip
+      uses: skx/github-action-publish-binaries@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        args: adempiere-grpc-server.zip/adempiere-grpc-server.zip
 
-      - name: Upload tar.MD5
-        uses: skx/github-action-publish-binaries@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          args: adempiere-grpc-server.tar.MD5/adempiere-grpc-server.tar.MD5
+    - name: Upload zip.MD5
+      uses: skx/github-action-publish-binaries@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        args: adempiere-grpc-server.zip.MD5/adempiere-grpc-server.zip.MD5
 
+    - name: Upload tar
+      uses: skx/github-action-publish-binaries@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        args: adempiere-grpc-server.tar/adempiere-grpc-server.tar
+
+    - name: Upload tar.MD5
+      uses: skx/github-action-publish-binaries@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        args: adempiere-grpc-server.tar.MD5/adempiere-grpc-server.tar.MD5
 
   # Check secrets to push image in docker hub registry
   check-docker-secrets:
     name: Check if docker hub registry information was set on secrets
     needs:
-      - build-app
+    - build-app
     runs-on: ubuntu-latest
     outputs:
       is_have_secrets: ${{ steps.check_docker_hub_secrets_job.outputs.is_have_secrets }}
     steps:
-      - id: check_docker_hub_secrets_job
-        run: |
-          if [[ "${{ secrets.DOCKER_REPO_ADEMPIERE_GRPC_SERVER }}" != "" && \
-                "${{ secrets.DOCKER_USERNAME }}" != "" && \
-                "${{ secrets.DOCKER_TOKEN }}" != "" ]]; \
-          then
-            echo "Secrets to use a container registry are configured in the repo"
-            echo "is_have_secrets=true" >> $GITHUB_OUTPUT
-          else
-            echo "Secrets to use a container registry were not configured in the repo"
-            echo "is_have_secrets=false" >> $GITHUB_OUTPUT
-          fi
+    - id: check_docker_hub_secrets_job
+      run: |
+        if [[ "${{ secrets.DOCKER_REPO_ADEMPIERE_GRPC_SERVER }}" != "" && \
+              "${{ secrets.DOCKER_USERNAME }}" != "" && \
+              "${{ secrets.DOCKER_TOKEN }}" != "" ]]; \
+        then
+          echo "Secrets to use a container registry are configured in the repo"
+          echo "is_have_secrets=true" >> $GITHUB_OUTPUT
+        else
+          echo "Secrets to use a container registry were not configured in the repo"
+          echo "is_have_secrets=false" >> $GITHUB_OUTPUT
+        fi
 
   # TODO: Download .tar and add docker image without uncompress
   # Publish docker alpine image in Docker Hub Registry to application
   push-alpine-imame-dhr:
     name: Push docker alpine image to Docker Hub
     needs:
-      - check-docker-secrets
+    - check-docker-secrets
     # Skip step based on secret
     if: needs.check-docker-secrets.outputs.is_have_secrets == 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: Check out the repo
-        uses: actions/checkout@v3
-      - name: Download build dist app
-        uses: actions/download-artifact@v3
-        with:
-          name: adempiere-grpc-server.zip
-      - name: Unzip Asset
-        run: |
-          unzip adempiere-grpc-server.zip -d docker/
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          # CONFIGURE DOCKER SECRETS INTO REPOSITORY
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
+    - name: Check out the repo
+      uses: actions/checkout@v3
+    - name: Download build dist app
+      uses: actions/download-artifact@v4
+      with:
+        name: adempiere-grpc-server.zip
+    - name: Unzip Asset
+      run: |
+        unzip adempiere-grpc-server.zip -d docker/
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        # CONFIGURE DOCKER SECRETS INTO REPOSITORY
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_TOKEN }}
 
-      - name: Push alpine image in Docker Hub
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: docker/alpine.Dockerfile
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_REPO_ADEMPIERE_GRPC_SERVER }}:alpine
-            ${{ secrets.DOCKER_REPO_ADEMPIERE_GRPC_SERVER }}:alpine-${{ github.event.release.tag_name }}
+    - name: Push alpine image in Docker Hub
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: docker/alpine.Dockerfile
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_REPO_ADEMPIERE_GRPC_SERVER }}:alpine
+          ${{ secrets.DOCKER_REPO_ADEMPIERE_GRPC_SERVER }}:alpine-${{ github.event.release.tag_name }}
 
   # TODO: Download .tar and add docker image without uncompress
   # Publish docker image multiplatform in Docker Hub Registry to application
   push-imame-dhr:
     name: Push docker image to Docker Hub
     needs:
-      - check-docker-secrets
+    - check-docker-secrets
     # Skip step based on secret
     if: needs.check-docker-secrets.outputs.is_have_secrets == 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: Check out the repo
-        uses: actions/checkout@v3
-      - name: Download build dist app
-        uses: actions/download-artifact@v3
-        with:
-          name: adempiere-grpc-server.zip
-      - name: Unzip Asset
-        run: |
-          unzip adempiere-grpc-server.zip -d docker/
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          # CONFIGURE DOCKER SECRETS INTO REPOSITORY
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
+    - name: Check out the repo
+      uses: actions/checkout@v3
+    - name: Download build dist app
+      uses: actions/download-artifact@v4
+      with:
+        name: adempiere-grpc-server.zip
+    - name: Unzip Asset
+      run: |
+        unzip adempiere-grpc-server.zip -d docker/
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        # CONFIGURE DOCKER SECRETS INTO REPOSITORY
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_TOKEN }}
 
-      - name: Push alpine image in Docker Hub
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: docker/focal.Dockerfile
-          platforms: linux/amd64,linux/amd64/v2,linux/arm64/v8
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_REPO_ADEMPIERE_GRPC_SERVER }}:${{ github.event.release.tag_name }}
-            ${{ secrets.DOCKER_REPO_ADEMPIERE_GRPC_SERVER }}:latest
+    - name: Push alpine image in Docker Hub
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: docker/focal.Dockerfile
+        platforms: linux/amd64,linux/amd64/v2,linux/arm64/v8
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_REPO_ADEMPIERE_GRPC_SERVER }}:${{ github.event.release.tag_name }}
+          ${{ secrets.DOCKER_REPO_ADEMPIERE_GRPC_SERVER }}:latest
