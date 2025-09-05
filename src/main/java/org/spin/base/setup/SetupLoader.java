@@ -110,8 +110,10 @@ public class SetupLoader {
 		connection.setAppsHost("MyAppsServer");
 		connection.setAppsPort(0);
 		//	Set default init
-		Ini.setProperty(Ini.P_CONNECTION, connection.toStringLong());
+//		Ini.setProperty(Ini.P_CONNECTION, connection.toStringLong());
 		Ini.setClient(true);
+		Ini.loadProperties(true);
+		
 //		Ini.setProperty(Ini.P_ADEMPIERE_APPS_TYPE, "wildfly");
 		Level logLevel = Level.parse(setup.getServer().getLog_level().toUpperCase());
 		Ini.setProperty(Ini.P_TRACEFILE, logLevel.getName());

@@ -53,7 +53,7 @@ dependencies {
 	implementation 'javax.activation:activation:1.1.1'
 	//	ADempiere Core
 	//implementation "${baseGroupId}:base:${baseVersion}"
-	implementation 'com.erpya:adempiere_patch.base:3.9.4.001-2.8.1'
+	implementation 'com.erpya:adempiere_patch.base:3.9.4.001-3.3.7'
 	implementation "${baseGroupId}:point-of-sales:${baseVersion}"
 	implementation "${baseGroupId}:store:${baseVersion}"
 	implementation "${baseGroupId}:distribution:${baseVersion}"
