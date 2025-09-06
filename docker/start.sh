@@ -7,6 +7,16 @@ sed -i "s|WARNING|$SERVER_LOG_LEVEL|g" env.yaml
 sed -i "s|fill_secret_key|$SECRET_KEY|g" env.yaml
 sed -i "s|fill_is_is_enabled_all_services|$IS_ENABLED_ALL_SERVICES|g" env.yaml
 
+# Set properties values
+sed -i "s|@CONFIG_DB_CONNECTION_TEST_QUERY@|$CONFIG_DB_CONNECTION_TEST_QUERY|g" Adempiere.properties
+sed -i "s|@CONFIG_DB_IDLE_TIMEOUT@|$CONFIG_DB_IDLE_TIMEOUT|g" Adempiere.properties
+sed -i "s|@CONFIG_DB_CONNECTION_TIMEOUT@|$CONFIG_DB_CONNECTION_TIMEOUT|g" Adempiere.properties
+sed -i "s|@CONFIG_DB_MINIMUM_IDLE@|$CONFIG_DB_MINIMUM_IDLE|g" Adempiere.properties
+sed -i "s|@CONFIG_DB_MAXIMUM_POOL_SIZE@|$CONFIG_DB_MAXIMUM_POOL_SIZE|g" Adempiere.properties
+sed -i "s|@CONFIG_DB_MAX_LIFETIME@|$CONFIG_DB_MAX_LIFETIME|g" Adempiere.properties
+sed -i "s|@CONFIG_DB_KEEPALIVE_TIME@|$CONFIG_DB_KEEPALIVE_TIME|g" Adempiere.properties
+
+
 export DEFAULT_JAVA_OPTIONS='"-Xms64M" "-Xmx1512M"'
 
 # create array to iterate

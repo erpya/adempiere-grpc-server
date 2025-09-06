@@ -18,7 +18,14 @@ ENV \
 	DB_TYPE="PostgreSQL" \
 	ADEMPIERE_APPS_TYPE="wildfly" \
 	SYSTEM_LOGO_URL="" \
-	TZ="America/Caracas"
+	TZ="America/Caracas" \
+	CONFIG_DB_CONNECTION_TEST_QUERY=SELECT 1 \
+	CONFIG_DB_IDLE_TIMEOUT=600000 \
+	CONFIG_DB_CONNECTION_TIMEOUT=10000 \
+	CONFIG_DB_MINIMUM_IDLE=10 \
+	CONFIG_DB_MAXIMUM_POOL_SIZE=50 \
+	CONFIG_DB_MAX_LIFETIME=1800000 \
+	CONFIG_DB_KEEPALIVE_TIME=30000
 
 EXPOSE ${SERVER_PORT}
 
@@ -40,6 +47,7 @@ WORKDIR /opt/apps/server
 # Copy src files
 COPY docker/adempiere-grpc-server /opt/apps/server
 COPY docker/env.yaml /opt/apps/server/env.yaml
+COPY docker/Adempiere.properties /opt/apps/server/Adempiere.properties
 COPY docker/start.sh /opt/apps/server/start.sh
 
 
