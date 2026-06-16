@@ -352,6 +352,7 @@ public class CashManagement {
 				.first();
 		if (bankStatement == null || bankStatement.get_ID() <= 0) {
 			if(pos.get_ValueAsBoolean("IsValidatePOSCashOpening") && validate) {
+				System.out.println("===> [DEBUG] Error en getOpenCashClosing: No se encontró un Cierre de Caja en curso. Hilo: " + Thread.currentThread().getName());
 				throw new AdempiereException("@POS.CashClosingNotFound@");
 			}
 		}

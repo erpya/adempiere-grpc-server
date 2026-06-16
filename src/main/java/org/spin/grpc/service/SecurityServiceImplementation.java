@@ -115,11 +115,13 @@ public class SecurityServiceImplementation extends SecurityImplBase {
 			if(request == null) {
 				throw new AdempiereException("Object Request Null");
 			}
+			System.out.println("===> [DEBUG] Intentando Login. Usuario: " + request.getUserName() + " Hilo: " + Thread.currentThread().getName());
 			log.fine("Session Requested = " + request.getUserName());
 			Session.Builder sessionBuilder = runLogin(request, true);
 			responseObserver.onNext(sessionBuilder.build());
 			responseObserver.onCompleted();
 		} catch (Exception e) {
+			System.out.println("===> [DEBUG] Error en Login: " + e.getLocalizedMessage() + ". Hilo: " + Thread.currentThread().getName());
 			log.severe(e.getLocalizedMessage());
 			e.printStackTrace();
 			responseObserver.onError(Status.INTERNAL
@@ -132,11 +134,13 @@ public class SecurityServiceImplementation extends SecurityImplBase {
 	@Override
 	public void runLoginOpenID(LoginOpenIDRequest request, StreamObserver<Session> responseObserver) {
 		try {
+			System.out.println("===> [DEBUG] Ejecutando runLoginOpenID. Hilo: " + Thread.currentThread().getName());
 			log.fine("Run Login Open ID");
 			Session.Builder sessionBuilder = createSessionFromOpenID(request);
 			responseObserver.onNext(sessionBuilder.build());
 			responseObserver.onCompleted();
 		} catch (Exception e) {
+			System.out.println("===> [DEBUG] Error en runLoginOpenID: " + e.getLocalizedMessage() + ". Hilo: " + Thread.currentThread().getName());
 			log.severe(e.getLocalizedMessage());
 			responseObserver.onError(Status.INTERNAL
 					.withDescription(e.getLocalizedMessage())
@@ -148,6 +152,7 @@ public class SecurityServiceImplementation extends SecurityImplBase {
 	@Override
 	public void listServices(ListServicesRequest request, StreamObserver<ListServicesResponse> responseObserver) {
 		try {
+			System.out.println("===> [DEBUG] Ejecutando listServices. Hilo: " + Thread.currentThread().getName());
 			log.fine("List Services");
 			ListServicesResponse.Builder serviceBuilder = ListServicesResponse.newBuilder();
 			Hashtable<Integer, Map<String, String>> services = OpenIDUtil.getAuthenticationServices();
@@ -162,6 +167,7 @@ public class SecurityServiceImplementation extends SecurityImplBase {
 			responseObserver.onNext(serviceBuilder.build());
 			responseObserver.onCompleted();
 		} catch (Exception e) {
+			System.out.println("===> [DEBUG] Error en listServices: " + e.getLocalizedMessage() + ". Hilo: " + Thread.currentThread().getName());
 			log.severe(e.getLocalizedMessage());
 			responseObserver.onError(Status.INTERNAL
 					.withDescription(e.getLocalizedMessage())

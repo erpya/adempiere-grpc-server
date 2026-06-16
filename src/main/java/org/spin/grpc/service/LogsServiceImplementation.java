@@ -371,6 +371,7 @@ public class LogsServiceImplementation extends LogsImplBase {
 	 * @return
 	 */
 	private ListRecentItemsResponse.Builder convertRecentItems(ListRecentItemsRequest request) {
+		System.out.println("===> [DEBUG] Ejecutando convertRecentItems. Hilo: " + Thread.currentThread().getName());
 		ListRecentItemsResponse.Builder builder = ListRecentItemsResponse.newBuilder();
 		List<MRecentItem> recentItemsList = MRecentItem.getFromUserAndRole(Env.getCtx());
 		if(recentItemsList != null) {
@@ -463,6 +464,7 @@ public class LogsServiceImplementation extends LogsImplBase {
 					//	
 					builder.addRecentItems(recentItemBuilder.build());	
 				} catch (Exception e) {
+					System.out.println("===> [DEBUG] Error en convertRecentItems: " + e.getLocalizedMessage() + ". Hilo: " + Thread.currentThread().getName());
 					log.severe(e.getLocalizedMessage());
 				}
 			}

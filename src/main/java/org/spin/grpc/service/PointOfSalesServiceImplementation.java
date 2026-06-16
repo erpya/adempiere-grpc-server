@@ -164,11 +164,13 @@ public class PointOfSalesServiceImplementation extends StoreImplBase {
 			if(request == null) {
 				throw new AdempiereException("Object Request Null");
 			}
+			System.out.println("===> [DEBUG] Ejecutando getProductPrice. Valor: " + request.getSearchValue() + " Hilo: " + Thread.currentThread().getName());
 			log.fine("Object Requested = " + request.getSearchValue());
 			ProductPrice.Builder productPrice = getProductPrice(request);
 			responseObserver.onNext(productPrice.build());
 			responseObserver.onCompleted();
 		} catch (Exception e) {
+			System.out.println("===> [DEBUG] Error en getProductPrice: " + e.getLocalizedMessage() + ". Hilo: " + Thread.currentThread().getName());
 			log.severe(e.getLocalizedMessage());
 			responseObserver.onError(Status.INTERNAL
 					.withDescription(e.getLocalizedMessage())

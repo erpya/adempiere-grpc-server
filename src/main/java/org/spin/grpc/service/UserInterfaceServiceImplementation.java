@@ -2731,6 +2731,7 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 	 * @return
 	 */
 	private ListLookupItemsResponse.Builder listLookupItems(ListLookupItemsRequest request) {
+		System.out.println("===> [DEBUG] Ejecutando listLookupItems. Hilo: " + Thread.currentThread().getName());
 		MLookupInfo reference = ReferenceInfo.getInfoFromRequest(
 			request.getReferenceUuid(),
 			request.getFieldUuid(),
@@ -2741,6 +2742,7 @@ public class UserInterfaceServiceImplementation extends UserInterfaceImplBase {
 			request.getTableName()
 		);
 		if (reference == null) {
+			System.out.println("===> [DEBUG] Error en listLookupItems: Referencia * No encontrado * . Hilo: " + Thread.currentThread().getName());
 			throw new AdempiereException("@AD_Reference_ID@ @NotFound@");
 		}
 
