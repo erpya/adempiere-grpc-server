@@ -23,6 +23,7 @@ import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Level;
@@ -69,9 +70,69 @@ import io.jsonwebtoken.security.Keys;
  */
 public class SessionManager {
 	
-	/**	Session Context	*/
-//	private static CCache<String, Properties> sessionsContext = new CCache<String, Properties>("Session-gRPC-Service", 30, 0);	//	no time-out
-	private static final Map<String, Properties> sessionsContext = Collections.synchronizedMap(new Hashtable<>());
+	/**
+	 * Thread-safe, bounded LRU cache with access-time expiration to prevent memory leaks
+	 * while ensuring active cashier and user sessions are never prematurely evicted.
+	 */
+	private static class BoundedSessionCache {
+		private static final int MAX_ENTRIES = 5000;
+		// 24 hours TTL in milliseconds (matching default token expiration)
+		private static final long TTL_MS = 24L * 60L * 60L * 1000L;
+
+		private static class SessionEntry {
+			final Properties context;
+			volatile long lastAccessTime;
+
+			SessionEntry(Properties context) {
+				this.context = context;
+				this.lastAccessTime = System.currentTimeMillis();
+			}
+		}
+
+		private final Map<String, SessionEntry> map = new LinkedHashMap<String, SessionEntry>(128, 0.75f, true) {
+			private static final long serialVersionUID = 1L;
+			@Override
+			protected boolean removeEldestEntry(Map.Entry<String, SessionEntry> eldest) {
+				return size() > MAX_ENTRIES;
+			}
+		};
+
+		public synchronized Properties get(String token) {
+			SessionEntry entry = map.get(token);
+			if (entry == null) {
+				return null;
+			}
+			long now = System.currentTimeMillis();
+			if (now - entry.lastAccessTime > TTL_MS) {
+				map.remove(token);
+				return null;
+			}
+			entry.lastAccessTime = now;
+			return entry.context;
+		}
+
+		public synchronized void put(String token, Properties context) {
+			if (token != null && context != null) {
+				map.put(token, new SessionEntry(context));
+			}
+		}
+
+		public synchronized Properties remove(String token) {
+			SessionEntry removed = map.remove(token);
+			return removed != null ? removed.context : null;
+		}
+
+		public synchronized int size() {
+			return map.size();
+		}
+
+		public synchronized void clear() {
+			map.clear();
+		}
+	}
+
+	/**	Bounded Session Context with LRU eviction and 24h TTL to prevent memory leaks	*/
+	private static final BoundedSessionCache sessionsContext = new BoundedSessionCache();
 	/**	Logger			*/
 	private static CLogger log = CLogger.getCLogger(SessionManager.class);
 	

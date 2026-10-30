@@ -16,6 +16,11 @@ package org.spin.server;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 import org.compiere.jr.report.ReportStarter;
@@ -71,6 +76,7 @@ public class AllInOneServices {
 	private static final Logger logger = Logger.getLogger(AllInOneServices.class.getName());
 
 	private Server server;
+	private ThreadPoolExecutor grpcExecutor;
 
 	private static String defaultFileConnection = "resources/standalone.yaml";
 	private ServiceContextProvider contextProvider =  new ServiceContextProvider();
@@ -102,6 +108,33 @@ public class AllInOneServices {
 		} else {
 			serverBuilder = ServerBuilder.forPort(SetupLoader.getInstance().getServer().getPort());
 		}
+
+		// Configure bounded thread pool to avoid unbounded thread creation and memory exhaustion
+		int availableProcessors = Runtime.getRuntime().availableProcessors();
+		int corePoolSize = Math.max(8, availableProcessors * 2);
+		int maxPoolSize = Math.max(64, availableProcessors * 8);
+
+		grpcExecutor = new ThreadPoolExecutor(
+			corePoolSize,
+			maxPoolSize,
+			60L, TimeUnit.SECONDS,
+			new LinkedBlockingQueue<>(2000),
+			new ThreadFactory() {
+				private final AtomicInteger threadNumber = new AtomicInteger(1);
+				@Override
+				public Thread newThread(Runnable r) {
+					Thread t = new Thread(r, "grpc-worker-" + threadNumber.getAndIncrement());
+					t.setDaemon(true);
+					return t;
+				}
+			},
+			new ThreadPoolExecutor.CallerRunsPolicy()
+		);
+		grpcExecutor.allowCoreThreadTimeOut(true);
+
+		serverBuilder.executor(grpcExecutor);
+		serverBuilder.maxInboundMessageSize(16 * 1024 * 1024);
+		serverBuilder.maxInboundMetadataSize(64 * 1024);
 
 		// Validate JWT on all requests
 		serverBuilder.intercept(new AuthorizationServerInterceptor());
@@ -298,6 +331,9 @@ public class AllInOneServices {
 	  private void stop() {
 	    if (server != null) {
 	      server.shutdown();
+	    }
+	    if (grpcExecutor != null) {
+	      grpcExecutor.shutdown();
 	    }
 	  }
 

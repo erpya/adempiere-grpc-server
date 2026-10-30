@@ -42,5 +42,5 @@ sed -i "s|adempiere_pass_value|$DB_PASSWORD|g" env.yaml
 sed -i "s|PostgreSQL|$DB_TYPE|g" env.yaml
 sed -i "s|$DEFAULT_JAVA_OPTIONS|$GRPC_JAVA_OPTIONS|g" bin/adempiere-all-in-one-server
 
-# Run app
-bin/adempiere-all-in-one-server env.yaml
+# Run app with exec so Java becomes PID 1 and receives Kubernetes SIGTERM signals cleanly
+exec bin/adempiere-all-in-one-server env.yaml
