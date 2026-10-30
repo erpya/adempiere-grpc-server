@@ -110,15 +110,24 @@ public class AllInOneServices {
 		}
 
 		// Configure bounded thread pool to avoid unbounded thread creation and memory exhaustion
+		// Configurable via environment variables or system properties with sensible defaults
 		int availableProcessors = Runtime.getRuntime().availableProcessors();
-		int corePoolSize = Math.max(8, availableProcessors * 2);
-		int maxPoolSize = Math.max(64, availableProcessors * 8);
+		int defaultCorePoolSize = Math.max(8, availableProcessors * 2);
+		int defaultMaxPoolSize = Math.max(64, availableProcessors * 8);
+
+		int corePoolSize = getEnvOrPropertyInt("GRPC_THREAD_POOL_CORE_SIZE", "grpc.thread.pool.core.size", defaultCorePoolSize);
+		int maxPoolSize = getEnvOrPropertyInt("GRPC_THREAD_POOL_MAX_SIZE", "grpc.thread.pool.max.size", defaultMaxPoolSize);
+		int queueCapacity = getEnvOrPropertyInt("GRPC_THREAD_POOL_QUEUE_CAPACITY", "grpc.thread.pool.queue.capacity", 2000);
+		int keepAliveSec = getEnvOrPropertyInt("GRPC_THREAD_POOL_KEEPALIVE_SEC", "grpc.thread.pool.keepalive.sec", 60);
+
+		int maxInboundMsgSize = getEnvOrPropertyInt("GRPC_MAX_INBOUND_MESSAGE_SIZE", "grpc.max.inbound.message.size", 16 * 1024 * 1024);
+		int maxInboundMetaSize = getEnvOrPropertyInt("GRPC_MAX_INBOUND_METADATA_SIZE", "grpc.max.inbound.metadata.size", 64 * 1024);
 
 		grpcExecutor = new ThreadPoolExecutor(
 			corePoolSize,
 			maxPoolSize,
-			60L, TimeUnit.SECONDS,
-			new LinkedBlockingQueue<>(2000),
+			keepAliveSec, TimeUnit.SECONDS,
+			new LinkedBlockingQueue<>(queueCapacity),
 			new ThreadFactory() {
 				private final AtomicInteger threadNumber = new AtomicInteger(1);
 				@Override
@@ -133,8 +142,8 @@ public class AllInOneServices {
 		grpcExecutor.allowCoreThreadTimeOut(true);
 
 		serverBuilder.executor(grpcExecutor);
-		serverBuilder.maxInboundMessageSize(16 * 1024 * 1024);
-		serverBuilder.maxInboundMetadataSize(64 * 1024);
+		serverBuilder.maxInboundMessageSize(maxInboundMsgSize);
+		serverBuilder.maxInboundMetadataSize(maxInboundMetaSize);
 
 		// Validate JWT on all requests
 		serverBuilder.intercept(new AuthorizationServerInterceptor());
@@ -326,6 +335,21 @@ public class AllInOneServices {
 		    	logger.info("*** server shut down");
 			}
 		});
+	  }
+
+	  private static int getEnvOrPropertyInt(String envVar, String sysProp, int defaultValue) {
+	    try {
+	      String val = System.getenv(envVar);
+	      if (val == null || val.trim().isEmpty()) {
+	        val = System.getProperty(sysProp);
+	      }
+	      if (val != null && !val.trim().isEmpty()) {
+	        return Integer.parseInt(val.trim());
+	      }
+	    } catch (Exception e) {
+	      // fallback to default
+	    }
+	    return defaultValue;
 	  }
 
 	  private void stop() {

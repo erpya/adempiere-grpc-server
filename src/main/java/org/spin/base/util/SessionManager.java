@@ -73,11 +73,40 @@ public class SessionManager {
 	/**
 	 * Thread-safe, bounded LRU cache with access-time expiration to prevent memory leaks
 	 * while ensuring active cashier and user sessions are never prematurely evicted.
+	 * Configurable via environment variables SESSION_CACHE_MAX_ENTRIES and SESSION_CACHE_TTL_HOURS.
 	 */
 	private static class BoundedSessionCache {
-		private static final int MAX_ENTRIES = 5000;
-		// 24 hours TTL in milliseconds (matching default token expiration)
-		private static final long TTL_MS = 24L * 60L * 60L * 1000L;
+		private final int maxEntries;
+		private final long ttlMs;
+
+		BoundedSessionCache() {
+			int max = 5000;
+			int ttlHours = 24;
+			try {
+				String envMax = System.getenv("SESSION_CACHE_MAX_ENTRIES");
+				if (envMax == null || envMax.trim().isEmpty()) {
+					envMax = System.getProperty("session.cache.max.entries");
+				}
+				if (envMax != null && !envMax.trim().isEmpty()) {
+					max = Integer.parseInt(envMax.trim());
+				}
+			} catch (Exception e) {
+				max = 5000;
+			}
+			try {
+				String envTtl = System.getenv("SESSION_CACHE_TTL_HOURS");
+				if (envTtl == null || envTtl.trim().isEmpty()) {
+					envTtl = System.getProperty("session.cache.ttl.hours");
+				}
+				if (envTtl != null && !envTtl.trim().isEmpty()) {
+					ttlHours = Integer.parseInt(envTtl.trim());
+				}
+			} catch (Exception e) {
+				ttlHours = 24;
+			}
+			this.maxEntries = Math.max(100, max);
+			this.ttlMs = Math.max(1, ttlHours) * 3600000L;
+		}
 
 		private static class SessionEntry {
 			final Properties context;
@@ -93,7 +122,7 @@ public class SessionManager {
 			private static final long serialVersionUID = 1L;
 			@Override
 			protected boolean removeEldestEntry(Map.Entry<String, SessionEntry> eldest) {
-				return size() > MAX_ENTRIES;
+				return size() > maxEntries;
 			}
 		};
 
@@ -103,7 +132,7 @@ public class SessionManager {
 				return null;
 			}
 			long now = System.currentTimeMillis();
-			if (now - entry.lastAccessTime > TTL_MS) {
+			if (now - entry.lastAccessTime > ttlMs) {
 				map.remove(token);
 				return null;
 			}
